@@ -6,7 +6,7 @@ import { getAuth, onAuthStateChanged, type Auth, type User } from 'firebase/auth
 import type { Firestore } from 'firebase/firestore';
 import { AppSidebar } from '@/components/app-sidebar';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
-import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter } from '@/components/ui/sidebar';
 
 // Define the shape of the context value
 interface FirebaseContextValue {
@@ -100,7 +100,6 @@ export function FirebaseProvider({
 
   return (
     <FirebaseContext.Provider value={value}>
-      <SidebarProvider>
         <div className="flex h-screen">
           <Suspense fallback={<SidebarLoading />}>
             <AppSidebar />
@@ -108,7 +107,6 @@ export function FirebaseProvider({
           <main className="flex-1">{children}</main>
           <FirebaseErrorListener />
         </div>
-      </SidebarProvider>
     </FirebaseContext.Provider>
   );
 }

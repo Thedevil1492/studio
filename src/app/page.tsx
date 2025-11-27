@@ -1,17 +1,17 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useContext } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Paperclip, Send, Bot, User, Sun, Menu, Loader2, LogOut } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useSidebar } from '@/components/ui/sidebar';
 import { generateChatResponseAction } from './actions';
 import { toast } from '@/hooks/use-toast';
 import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp, query, orderBy, where, doc, setDoc } from 'firebase/firestore';
+import { SidebarContext } from '@/components/ui/sidebar';
 
 type Message = {
   text: string;
@@ -23,9 +23,9 @@ type Message = {
 export default function HomePage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const { setOpen: setSidebarOpen, setOpenMobile } = useSidebar();
   const [isAiLoading, setIsAiLoading] = useState(false);
-  
+  const sidebarContext = useContext(SidebarContext);
+
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -179,12 +179,12 @@ export default function HomePage() {
     <div className="flex h-screen bg-background text-foreground">
       <main className="flex flex-1 flex-col transition-all duration-300">
         <header className="flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur-sm px-4 md:px-6">
-           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpenMobile(true)}>
+           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => sidebarContext?.setOpenMobile(true)}>
              <Menu className="h-6 w-6" />
              <span className="sr-only">Toggle Sidebar</span>
            </Button>
            <div className="flex items-center gap-2">
-             <Button variant="ghost" size="icon" className="hidden md:flex" onClick={() => setSidebarOpen(true)}>
+             <Button variant="ghost" size="icon" className="hidden md:flex" onClick={() => sidebarContext?.setOpen(true)}>
                <Menu className="h-6 w-6" />
                <span className="sr-only">Toggle Sidebar</span>
              </Button>
