@@ -11,7 +11,7 @@ import { generateChatResponseAction } from '../actions';
 import { toast } from '@/hooks/use-toast';
 import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { collection, addDoc, serverTimestamp, query, orderBy, where, doc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, doc, setDoc } from 'firebase/firestore';
 import { AppSidebar } from '@/components/app-sidebar';
 import { nanoid } from 'nanoid';
 
@@ -47,7 +47,7 @@ export function ChatInterface() {
   // Memoize the query to prevent re-renders
   const messagesQuery = useMemoFirebase(() => {
     if (!isClient || !user || !firestore || !chatId) return null;
-    return query(collection(firestore, 'users', user.uid, 'messages'), where('chatId', '==', chatId), orderBy('createdAt', 'asc'));
+    return query(collection(firestore, 'users', user.uid, 'chats', chatId, 'messages'), orderBy('createdAt', 'asc'));
   }, [isClient, user, firestore, chatId]);
 
   const { data: messages, isLoading: isHistoryLoading } = useCollection<Message>(messagesQuery);
@@ -77,18 +77,18 @@ export function ChatInterface() {
         await setDoc(newChatRef, newChat);
         currentChatId = newChatRef.id;
         router.push(`/?id=${currentChatId}`, { scroll: false });
-        return;
+        // Don't return here. Continue to add the first message.
     }
     
     const userMessage: Omit<Message, 'id'> = { text: userMessageText, sender: 'user' };
-    const messagesColRef = collection(firestore, 'users', user.uid, 'messages');
+    if (!currentChatId) return; // Should not happen, but as a safeguard.
+    
+    const messagesColRef = collection(firestore, 'users', user.uid, 'chats', currentChatId, 'messages');
     
     try {
         await addDoc(messagesColRef, {
             ...userMessage,
-            chatId: currentChatId,
             createdAt: serverTimestamp(),
-            userId: user.uid,
         });
     } catch (error) {
         console.error("Error saving user message:", error);
@@ -121,9 +121,7 @@ export function ChatInterface() {
         try {
             await addDoc(messagesColRef, {
                 ...aiResponse,
-                chatId: currentChatId,
                 createdAt: serverTimestamp(),
-                userId: user.uid,
             });
         } catch(error) {
              console.error("Error saving AI message:", error);
@@ -289,5 +287,3 @@ export function ChatInterface() {
     </div>
   );
 }
-
-    

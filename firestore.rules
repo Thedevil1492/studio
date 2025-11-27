@@ -11,11 +11,10 @@ service cloud.firestore {
     // Matches any document in the 'users' collection.
     match /users/{userId} {
       // Allow a user to create their own profile, but not overwrite an existing one.
-      // This is crucial for the sign-up process.
       allow create: if request.auth != null && request.auth.uid == userId;
       
-      // Allow a user to read, update, or delete their own user profile document.
-      allow read, update, delete: if isOwner(userId);
+      // Allow a user to read their own user profile document.
+      allow read: if isOwner(userId);
     }
     
     // This is a recursive wildcard match. It applies to any document
@@ -28,5 +27,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

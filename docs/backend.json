@@ -79,22 +79,12 @@
         "createdAt": {
           "type": "object",
           "description": "The server timestamp when the message was created."
-        },
-        "userId": {
-          "type": "string",
-          "description": "The UID of the user who this message belongs to."
-        },
-        "chatId": {
-          "type": "string",
-          "description": "The ID of the chat session this message belongs to."
         }
       },
       "required": [
         "text",
         "sender",
-        "createdAt",
-        "userId",
-        "chatId"
+        "createdAt"
       ]
     }
   },
@@ -116,11 +106,11 @@
       },
       "description": "Stores all chat sessions for a specific user."
     },
-    "/users/{userId}/messages/{messageId}": {
+    "/users/{userId}/chats/{chatId}/messages/{messageId}": {
       "schema": {
         "$ref": "#/entities/ChatMessage"
       },
-      "description": "Stores all chat messages for a specific user, queryable by chatId."
+      "description": "Stores all messages for a specific chat session."
     }
   }
 }
