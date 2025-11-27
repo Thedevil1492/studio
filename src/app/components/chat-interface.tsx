@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,11 +12,12 @@ import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '
 import { signOut } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp, query, orderBy, where, doc, setDoc } from 'firebase/firestore';
 import { AppSidebar } from '@/components/app-sidebar';
+import { nanoid } from 'nanoid';
 
 type Message = {
   text: string;
   sender: 'user' | 'ai';
-  id?: string;
+  id: string;
   createdAt?: any;
 };
 
@@ -77,7 +78,7 @@ export function ChatInterface() {
         currentChatId = newChatRef.id;
     }
 
-    const userMessage: Message = { text: input, sender: 'user' };
+    const userMessage: Message = { text: input, sender: 'user', id: nanoid() };
     
     // Optimistic update
     if (!isNewChat) {
@@ -91,11 +92,12 @@ export function ChatInterface() {
       router.push(`/?id=${currentChatId}`, { scroll: false });
     }
 
-    // Save user message to Firestore
+    // Save user message to Firestore - we don't save the client-side ID
     try {
+        const { id, ...messageToSave } = userMessage;
         const messagesColRef = collection(firestore, 'users', user.uid, 'messages');
         await addDoc(messagesColRef, {
-            ...userMessage,
+            ...messageToSave,
             chatId: currentChatId,
             createdAt: serverTimestamp(),
             userId: user.uid,
@@ -127,12 +129,13 @@ export function ChatInterface() {
     }
 
     if (response.result) {
-        const aiResponse: Message = { text: response.result, sender: 'ai' };
+        const aiResponse: Message = { text: response.result, sender: 'ai', id: nanoid() };
         // Save AI message to Firestore
         try {
+            const { id, ...messageToSave } = aiResponse;
             const messagesColRef = collection(firestore, 'users', user.uid, 'messages');
             await addDoc(messagesColRef, {
-                ...aiResponse,
+                ...messageToSave,
                 chatId: currentChatId,
                 createdAt: serverTimestamp(),
                 userId: user.uid,
@@ -226,9 +229,9 @@ export function ChatInterface() {
                   </p>
                 </div>
               ) : (
-                messages.map((msg, index) => (
+                messages.map((msg) => (
                   <motion.div
-                    key={msg.id || index}
+                    key={msg.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
@@ -257,6 +260,7 @@ export function ChatInterface() {
               )}
                {isAiLoading && (
                  <motion.div
+                    key="ai-loading"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
