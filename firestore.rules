@@ -6,15 +6,21 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    // Grant full access to a user's own data and all subcollections.
-    // This allows users to read/write their profile, chats, and messages.
-    match /users/{userId}/{document=**} {
-      allow read, write: if isOwner(userId);
+    // Users can read and write to their own profile document.
+    match /users/{userId} {
+      allow read, update, delete: if isOwner(userId);
+      // A user can create their own user document upon signup.
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
     }
 
-    // Explicitly allow users to create their own user document upon signup.
-    match /users/{userId} {
-      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    // Users can read and write to their own chats subcollection.
+    match /users/{userId}/chats/{chatId} {
+        allow read, write: if isOwner(userId);
+    }
+
+    // Users can read and write to their own messages subcollection.
+    match /users/{userId}/messages/{messageId} {
+        allow read, write: if isOwner(userId);
     }
   }
 }
