@@ -1,12 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, type ReactNode, Suspense } from 'react';
 import type { FirebaseApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, type Auth, type User } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import { AppSidebar } from '@/components/app-sidebar';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter } from '@/components/ui/sidebar';
 
 // Define the shape of the context value
 interface FirebaseContextValue {
@@ -45,11 +45,31 @@ interface FirebaseProviderProps {
   firestore: Firestore | null;
 }
 
+function SidebarLoading() {
+    return (
+        <Sidebar>
+            <SidebarHeader className="p-4">
+                <div className="h-9 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
+            </SidebarHeader>
+            <SidebarContent className="flex-1 overflow-y-auto px-2">
+                <div className="p-2 space-y-2">
+                  <div className="h-8 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
+                  <div className="h-8 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
+                  <div className="h-8 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
+                </div>
+            </SidebarContent>
+            <SidebarFooter className="p-4">
+                <div className="h-12 w-full bg-sidebar-accent/50 animate-pulse rounded-md" />
+            </SidebarFooter>
+        </Sidebar>
+    )
+}
+
 export function FirebaseProvider({
   children,
   firebaseApp,
   auth,
-firestore,
+  firestore,
 }: FirebaseProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(true);
@@ -82,10 +102,10 @@ firestore,
     <FirebaseContext.Provider value={value}>
       <SidebarProvider>
         <div className="flex h-screen">
-          <AppSidebar />
-          <main className="flex-1">
-            {children}
-          </main>
+          <Suspense fallback={<SidebarLoading />}>
+            <AppSidebar />
+          </Suspense>
+          <main className="flex-1">{children}</main>
           <FirebaseErrorListener />
         </div>
       </SidebarProvider>
