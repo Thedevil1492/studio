@@ -11,14 +11,17 @@ service cloud.firestore {
 
     // Rules for the /users collection and its subcollections
     match /users/{userId} {
-      // Allow a user to create their own profile document.
+      // Allow a user to create their own profile document upon signup.
       allow create: if request.auth.uid == userId;
-      // Allow a user to read their own profile document.
+
+      // Allow a user to read their own top-level profile document.
       allow read: if isOwner(userId);
       
       // This is a recursive wildcard match. It applies to any document
       // in any subcollection under a specific user's document 
       // (e.g., /users/{userId}/chats/{chatId} and /users/{userId}/chats/{chatId}/messages/{messageId}).
+      // Because this rule is NESTED inside `match /users/{userId}`, the `userId` wildcard is
+      // correctly scoped and available for the isOwner function call.
       match /{path=**} {
         // Allow the owner of the user document to read and write to any
         // of their own nested documents and subcollections. This single rule 
