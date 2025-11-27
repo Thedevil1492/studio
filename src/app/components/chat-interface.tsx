@@ -15,14 +15,13 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { nanoid } from 'nanoid';
 
 type Message = {
+  id: string;
   text: string;
   sender: 'user' | 'ai';
-  id: string;
   createdAt?: any;
 };
 
 export function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -41,26 +40,19 @@ export function ChatInterface() {
     return query(collection(firestore, 'users', user.uid, 'messages'), where('chatId', '==', chatId), orderBy('createdAt', 'asc'));
   }, [user, firestore, chatId]);
 
-  const { data: chatHistory, isLoading: isHistoryLoading } = useCollection<Message>(messagesQuery);
+  const { data: messages, isLoading: isHistoryLoading } = useCollection<Message>(messagesQuery);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
-  
-  useEffect(() => {
-    // Only set messages if a chat is selected and history is loaded.
-    if (chatId && chatHistory) {
-      setMessages(chatHistory);
-    } else {
-      // If no chat is selected, messages should be empty.
-      setMessages([]);
-    }
-  }, [chatHistory, chatId]);
 
   const handleSend = async () => {
     if (input.trim() === '' || isAiLoading || !user || !firestore) return;
+
+    const userMessageText = input;
+    setInput('');
 
     let currentChatId = chatId;
     let isNewChat = false;
@@ -70,7 +62,7 @@ export function ChatInterface() {
         isNewChat = true;
         const newChatRef = doc(collection(firestore, 'users', user.uid, 'chats'));
         const newChat = {
-            title: input.slice(0, 30),
+            title: userMessageText.slice(0, 30),
             createdAt: serverTimestamp(),
             userId: user.uid,
         };
@@ -78,26 +70,24 @@ export function ChatInterface() {
         currentChatId = newChatRef.id;
     }
 
-    const userMessage: Message = { text: input, sender: 'user', id: nanoid() };
-    
-    // Optimistic update
-    if (!isNewChat) {
-      setMessages(prevMessages => [...prevMessages, userMessage]);
-    }
-
-    setInput('');
-    setIsAiLoading(true);
-
     if (isNewChat && currentChatId) {
+      // Redirect to the new chat page. The rest of the logic will be handled
+      // by the hooks listening to the new chat ID.
       router.push(`/?id=${currentChatId}`, { scroll: false });
     }
 
-    // Save user message to Firestore - we don't save the client-side ID
+    if (!currentChatId) {
+      toast({ title: 'Error', description: 'Could not create or find chat.', variant: 'destructive' });
+      return;
+    }
+
+    // Save user message to Firestore
+    const userMessage: Omit<Message, 'id'> = { text: userMessageText, sender: 'user' };
+    const messagesColRef = collection(firestore, 'users', user.uid, 'messages');
+    
     try {
-        const { id, ...messageToSave } = userMessage;
-        const messagesColRef = collection(firestore, 'users', user.uid, 'messages');
         await addDoc(messagesColRef, {
-            ...messageToSave,
+            ...userMessage,
             chatId: currentChatId,
             createdAt: serverTimestamp(),
             userId: user.uid,
@@ -109,12 +99,14 @@ export function ChatInterface() {
             description: 'Could not save your message. Please try again.',
             variant: 'destructive',
         });
-        setMessages(messages); // Revert optimistic update
-        setIsAiLoading(false);
         return;
     }
 
-    const response = await generateChatResponseAction([...messages, userMessage]);
+    setIsAiLoading(true);
+
+    const fullHistory = messages || [];
+    const response = await generateChatResponseAction([...fullHistory, { ...userMessage, id: nanoid() }]);
+    
     setIsAiLoading(false);
 
     if (response.error) {
@@ -123,19 +115,15 @@ export function ChatInterface() {
         description: response.error,
         variant: 'destructive',
       });
-      // Revert optimistic update only for the user message
-      setMessages(messages); 
       return;
     }
 
     if (response.result) {
-        const aiResponse: Message = { text: response.result, sender: 'ai', id: nanoid() };
+        const aiResponse: Omit<Message, 'id'> = { text: response.result, sender: 'ai' };
         // Save AI message to Firestore
         try {
-            const { id, ...messageToSave } = aiResponse;
-            const messagesColRef = collection(firestore, 'users', user.uid, 'messages');
             await addDoc(messagesColRef, {
-                ...messageToSave,
+                ...aiResponse,
                 chatId: currentChatId,
                 createdAt: serverTimestamp(),
                 userId: user.uid,
@@ -229,7 +217,7 @@ export function ChatInterface() {
                   </p>
                 </div>
               ) : (
-                messages.map((msg) => (
+                messages?.map((msg) => (
                   <motion.div
                     key={msg.id}
                     initial={{ opacity: 0, y: 20 }}
