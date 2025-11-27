@@ -38,7 +38,7 @@
     "Chat": {
       "title": "Chat",
       "type": "object",
-      "description": "A single chat session.",
+      "description": "A single chat session, containing all its messages.",
       "properties": {
         "title": {
           "type": "string",
@@ -51,40 +51,27 @@
         "userId": {
           "type": "string",
           "description": "The UID of the user who owns this chat."
+        },
+        "messages": {
+          "type": "array",
+          "description": "An array of all messages in the chat.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "text": { "type": "string" },
+              "sender": { "type": "string", "enum": ["user", "ai"] },
+              "createdAt": { "type": "object" }
+            },
+            "required": ["id", "text", "sender"]
+          }
         }
       },
       "required": [
         "title",
         "createdAt",
-        "userId"
-      ]
-    },
-    "ChatMessage": {
-      "title": "Chat Message",
-      "type": "object",
-      "description": "A single message within a chat session.",
-      "properties": {
-        "text": {
-          "type": "string",
-          "description": "The content of the chat message."
-        },
-        "sender": {
-          "type": "string",
-          "enum": [
-            "user",
-            "ai"
-          ],
-          "description": "Who sent the message."
-        },
-        "createdAt": {
-          "type": "object",
-          "description": "The server timestamp when the message was created."
-        }
-      },
-      "required": [
-        "text",
-        "sender",
-        "createdAt"
+        "userId",
+        "messages"
       ]
     }
   },
@@ -104,13 +91,7 @@
       "schema": {
         "$ref": "#/entities/Chat"
       },
-      "description": "Stores all chat sessions for a specific user."
-    },
-    "/users/{userId}/chats/{chatId}/messages/{messageId}": {
-      "schema": {
-        "$ref": "#/entities/ChatMessage"
-      },
-      "description": "Stores all messages for a specific chat session."
+      "description": "Stores all chat sessions for a specific user, with messages embedded."
     }
   }
 }

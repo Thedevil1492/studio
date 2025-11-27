@@ -1,6 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
     // This single rule grants a user read/write access to their own user document
     // and ALL documents and subcollections nested underneath it.
     // It is the most direct and powerful way to secure user-owned data.

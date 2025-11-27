@@ -37,10 +37,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
 import {usePathname, useRouter, useSearchParams} from 'next/navigation';
-import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useAuth, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { collection, query, orderBy, doc, deleteDoc } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
+import { useCollection } from 'react-firebase-hooks/firestore';
+
 
 type Chat = {
     id: string;
@@ -69,7 +71,9 @@ export function AppSidebar({ open, onOpenChange, openMobile, onOpenChangeMobile 
     return query(collection(firestore, 'users', user.uid, 'chats'), orderBy('createdAt', 'desc'));
   }, [user, firestore]);
 
-  const { data: chatHistory, isLoading: isHistoryLoading } = useCollection<Chat>(chatsQuery);
+  const [snapshot, isHistoryLoading, error] = useCollection(chatsQuery);
+  const chatHistory = snapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as Chat));
+
 
   const handleNewChat = () => {
     onOpenChange(false);
@@ -89,13 +93,10 @@ export function AppSidebar({ open, onOpenChange, openMobile, onOpenChangeMobile 
     const chatRef = doc(firestore, 'users', user.uid, 'chats', chatIdToDelete);
     try {
         await deleteDoc(chatRef);
-        // This is a simplified approach. In a real app, you'd also want to
-        // delete all messages in this chat, which would require a more complex operation.
         toast({
             title: "Chat Deleted",
             description: "The conversation has been removed."
         })
-        // If the deleted chat is the one currently being viewed, redirect to the main page.
         if (chatId === chatIdToDelete) {
           router.push('/');
         }

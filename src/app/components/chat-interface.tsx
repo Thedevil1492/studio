@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -9,9 +8,15 @@ import { Paperclip, Send, Bot, User, Sun, Menu, Loader2, LogOut } from 'lucide-r
 import { AnimatePresence, motion } from 'framer-motion';
 import { generateChatResponseAction } from '../actions';
 import { toast } from '@/hooks/use-toast';
-import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { collection, addDoc, serverTimestamp, query, orderBy, doc, setDoc, getDocs } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  updateDoc,
+  arrayUnion,
+  serverTimestamp,
+} from 'firebase/firestore';
 import { AppSidebar } from '@/components/app-sidebar';
 import { nanoid } from 'nanoid';
 
@@ -22,12 +27,19 @@ type Message = {
   createdAt?: any;
 };
 
+type ChatDocument = {
+    id: string;
+    title: string;
+    userId: string;
+    createdAt: any;
+    messages: Message[];
+}
+
 export function ChatInterface() {
   const [input, setInput] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarOpenMobile, setSidebarOpenMobile] = useState(false);
-  
   const [isClient, setIsClient] = useState(false);
 
   const router = useRouter();
@@ -42,12 +54,13 @@ export function ChatInterface() {
     setIsClient(true);
   }, []);
 
-  const messagesQuery = useMemoFirebase(() => {
+  const chatDocRef = useMemoFirebase(() => {
     if (!isClient || !user || !firestore || !chatId) return null;
-    return query(collection(firestore, 'users', user.uid, 'chats', chatId, 'messages'), orderBy('createdAt', 'asc'));
+    return doc(firestore, 'users', user.uid, 'chats', chatId);
   }, [isClient, user, firestore, chatId]);
 
-  const { data: messages, isLoading: isHistoryLoading } = useCollection<Message>(messagesQuery);
+  const { data: chatDoc, isLoading: isHistoryLoading } = useDoc<ChatDocument>(chatDocRef);
+  const messages = chatDoc?.messages ?? [];
 
   useEffect(() => {
     if (isClient && !isUserLoading && !user) {
@@ -62,53 +75,46 @@ export function ChatInterface() {
     setInput('');
 
     let currentChatId = chatId;
-    let isNewChat = false;
+    const userMessage: Message = {
+        id: nanoid(),
+        text: userMessageText,
+        sender: 'user',
+        createdAt: new Date(), // Use client-side date for optimistic update
+    };
 
     // --- New Chat Creation Logic ---
     if (!currentChatId) {
-        isNewChat = true;
-        const newChatRef = doc(collection(firestore, 'users', user.uid, 'chats'));
-        currentChatId = newChatRef.id; // Get ID immediately.
-        
-        // Immediately navigate to the new chat URL
-        router.push(`/?id=${currentChatId}`, { scroll: false });
-        
-        // Create the chat document in the background.
-        const newChatData = {
-            title: userMessageText.substring(0, 30),
-            createdAt: serverTimestamp(),
-            userId: user.uid,
-        };
-        await setDoc(newChatRef, newChatData);
-    }
-    
-    if (!currentChatId) return;
-    
-    const messagesColRef = collection(firestore, 'users', user.uid, 'chats', currentChatId, 'messages');
-    
-    // Add user message to Firestore.
-    const userMessageData = {
-        id: nanoid(), // Add a temporary client-side ID
-        text: userMessageText,
-        sender: 'user' as const,
+      const newChatRef = doc(firestore, 'users', user.uid, 'chats', nanoid());
+      currentChatId = newChatRef.id;
+
+      const newChatData = {
+        title: userMessageText.substring(0, 30),
         createdAt: serverTimestamp(),
-    };
-    // Don't await this, let Firestore handle it. The `useCollection` hook will update the UI.
-    const userMessagePromise = addDoc(messagesColRef, userMessageData);
-    
+        userId: user.uid,
+        messages: [userMessage], // Start with the user's first message
+      };
+      
+      // Navigate immediately and create doc in background
+      router.push(`/?id=${currentChatId}`, { scroll: false });
+      await setDoc(newChatRef, newChatData);
+
+    } else {
+      // --- Existing Chat Update Logic ---
+      const chatRef = doc(firestore, 'users', user.uid, 'chats', currentChatId);
+      // Optimistically update the UI by adding the message to the array
+      // `useDoc` will eventually get the server-confirmed version
+      await updateDoc(chatRef, {
+        messages: arrayUnion(userMessage),
+      });
+    }
+
+    if (!currentChatId) return;
+
     setIsAiLoading(true);
 
-    // To get the full history for the AI, we need to fetch it once.
-    // This ensures we have the most up-to-date context.
-    const historyQuery = query(messagesColRef, orderBy('createdAt', 'asc'));
-    const historySnapshot = await getDocs(historyQuery);
-    const fullHistory = historySnapshot.docs.map(doc => doc.data() as Message);
-    
-    // Now include the message we just sent.
-    const updatedHistory = [...fullHistory, userMessageData];
-    
-    const response = await generateChatResponseAction(updatedHistory);
-    
+    const historyForAI = [...messages, userMessage];
+
+    const response = await generateChatResponseAction(historyForAI);
     setIsAiLoading(false);
 
     if (response.error) {
@@ -121,13 +127,16 @@ export function ChatInterface() {
     }
 
     if (response.result) {
-        const aiMessageData = {
-            text: response.result,
-            sender: 'ai' as const,
-            createdAt: serverTimestamp(),
-        };
-        // Add AI response to Firestore. Let `useCollection` handle the UI update.
-        addDoc(messagesColRef, aiMessageData);
+      const aiMessage: Message = {
+        id: nanoid(),
+        text: response.result,
+        sender: 'ai',
+        createdAt: new Date(), // Client-side date
+      };
+      const chatRef = doc(firestore, 'users', user.uid, 'chats', currentChatId);
+      await updateDoc(chatRef, {
+        messages: arrayUnion(aiMessage),
+      });
     }
   };
 
@@ -210,7 +219,7 @@ export function ChatInterface() {
                   </p>
                 </div>
               ) : (
-                messages?.map((msg) => (
+                messages.map((msg) => (
                   <motion.div
                     key={msg.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -288,5 +297,3 @@ export function ChatInterface() {
     </div>
   );
 }
-
-    
