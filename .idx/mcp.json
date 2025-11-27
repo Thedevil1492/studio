@@ -9,6 +9,10 @@
         "--only",
         "auth,firestore"
       ]
+    },
+    "studio-qe96.vercel.app": {
+      "command": "",
+      "args": []
     }
   }
 }

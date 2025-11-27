@@ -9,7 +9,7 @@ import { Paperclip, Send, Bot, User, Sun, Menu, Loader2, LogOut } from 'lucide-r
 import { AnimatePresence, motion } from 'framer-motion';
 import { generateChatResponseAction } from '../actions';
 import { toast } from '@/hooks/use-toast';
-import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase, FirestorePermissionError, errorEmitter } from '@/firebase';
+import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp, query, orderBy, doc, setDoc } from 'firebase/firestore';
 import { AppSidebar } from '@/components/app-sidebar';
@@ -62,55 +62,55 @@ export function ChatInterface() {
     setInput('');
 
     let currentChatId = chatId;
+    let isNewChat = false;
 
     // Create a new chat if one doesn't exist
     if (!currentChatId) {
+        isNewChat = true;
         const newChatRef = doc(collection(firestore, 'users', user.uid, 'chats'));
         const newChatData = {
             title: userMessageText.slice(0, 30),
             createdAt: serverTimestamp(),
             userId: user.uid,
         };
-        
-        setDoc(newChatRef, newChatData).catch(error => {
-            errorEmitter.emit(
-              'permission-error',
-              new FirestorePermissionError({
-                path: newChatRef.path,
-                operation: 'create',
-                requestResourceData: newChatData,
-              })
-            );
-        });
-
+        // Not awaiting this is okay, we redirect immediately
+        setDoc(newChatRef, newChatData);
         currentChatId = newChatRef.id;
-        router.push(`/?id=${currentChatId}`, { scroll: false });
     }
     
-    const userMessage: Omit<Message, 'id'> = { text: userMessageText, sender: 'user' };
     if (!currentChatId) return;
     
     const messagesColRef = collection(firestore, 'users', user.uid, 'chats', currentChatId, 'messages');
     const userMessageData = {
-        ...userMessage,
+        text: userMessageText,
+        sender: 'user',
         createdAt: serverTimestamp(),
     };
     
-    addDoc(messagesColRef, userMessageData).catch(error => {
-        errorEmitter.emit(
-          'permission-error',
-          new FirestorePermissionError({
-            path: messagesColRef.path,
-            operation: 'create',
-            requestResourceData: userMessageData,
-          })
-        );
-    });
+    // Add the user's message
+    const userMessagePromise = addDoc(messagesColRef, userMessageData);
+
+    // If it's a new chat, we need to navigate to the new URL *before* awaiting AI response
+    if (isNewChat) {
+      router.push(`/?id=${currentChatId}`, { scroll: false });
+    }
 
     setIsAiLoading(true);
 
-    const fullHistory = messages || [];
-    const response = await generateChatResponseAction([...fullHistory, { ...userMessage, id: nanoid() }]);
+    // Await the user message to be saved before calling the action
+    await userMessagePromise;
+
+    // We now have to refetch messages from the hook to get the full history
+    const fullHistoryQuery = query(collection(firestore, 'users', user.uid, 'chats', currentChatId, 'messages'), orderBy('createdAt', 'asc'));
+    const { data: fullHistory } = await (async () => {
+        // This is a temporary one-time fetch, not a hook
+        const { getDocs } = await import('firebase/firestore');
+        const snapshot = await getDocs(fullHistoryQuery);
+        return { data: snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Message[] };
+    })();
+
+
+    const response = await generateChatResponseAction(fullHistory || []);
     
     setIsAiLoading(false);
 
@@ -124,21 +124,12 @@ export function ChatInterface() {
     }
 
     if (response.result) {
-        const aiResponse: Omit<Message, 'id'> = { text: response.result, sender: 'ai' };
         const aiMessageData = {
-            ...aiResponse,
+            text: response.result,
+            sender: 'ai',
             createdAt: serverTimestamp(),
         };
-        addDoc(messagesColRef, aiMessageData).catch(error => {
-             errorEmitter.emit(
-              'permission-error',
-              new FirestorePermissionError({
-                path: messagesColRef.path,
-                operation: 'create',
-                requestResourceData: aiMessageData,
-              })
-            );
-        });
+        addDoc(messagesColRef, aiMessageData);
     }
   };
 
@@ -279,7 +270,7 @@ export function ChatInterface() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              disabled={isAiLoading || !firestore}
+              disabled={isAiLoading || !firestore || !user}
             />
             <div className="absolute left-4 top-1/2 -translate-y-1/2">
               <Button variant="ghost" size="icon" className="rounded-full">
@@ -288,7 +279,7 @@ export function ChatInterface() {
               </Button>
             </div>
             <div className="absolute right-2 top-1/2 -translate-y-1/2">
-              <Button size="icon" className="rounded-full w-9 h-9" onClick={handleSend} disabled={!input.trim() || isAiLoading || !firestore}>
+              <Button size="icon" className="rounded-full w-9 h-9" onClick={handleSend} disabled={!input.trim() || isAiLoading || !firestore || !user}>
                 <Send className="w-5 h-5" />
                 <span className="sr-only">Send Message</span>
               </Button>
@@ -299,5 +290,3 @@ export function ChatInterface() {
     </div>
   );
 }
-
-    
