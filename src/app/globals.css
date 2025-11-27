@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root, .light {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 285 86% 53%; /* Cosmic Purple */
+    --primary-foreground: 285 86% 95%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 182 100% 74%; /* Cosmic Cyan */
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.5rem;
+
+    --sidebar-background: 240 4.8% 97.9%;
+    --sidebar-foreground: 240 5.9% 10%;
+    --sidebar-border: 240 5.9% 90%;
+    --sidebar-accent: 240 4.8% 94.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-primary: 285 86% 53%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-ring: 285 86% 63%;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 285 86% 63%; /* Lighter Purple for dark mode */
+    --primary-foreground: 285 86% 95%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 182 90% 60%; /* Brighter Cyan for dark mode */
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 285 86% 73%;
+    
+    --sidebar-background: 240 10% 5.9%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-border: 240 3.7% 12.9%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-primary: 182 90% 60%;
+    --sidebar-primary-foreground: 240 10% 3.9%;
+    --sidebar-ring: 182 90% 70%;
+  }
+
+  .cosmic {
+    --background: 271 72% 9%; /* #1A0529 */
+    --foreground: 278 25% 90%;
+    --card: 271 72% 12%; /* A slightly lighter version for cards */
+    --card-foreground: 278 25% 90%;
+    --popover: 271 72% 7%;
+    --popover-foreground: 278 25% 90%;
+    --primary: 285 86% 53%; /* #A020F0 */
+    --primary-foreground: 285 86% 95%;
+    --secondary: 278 50% 20%;
+    --secondary-foreground: 278 25% 90%;
+    --muted: 278 50% 20%;
+    --muted-foreground: 278 25% 70%;
+    --accent: 182 100% 74%; /* #7DF9FF */
+    --accent-foreground: 271 72% 9%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 285 50% 25%;
+    --input: 285 50% 25%;
+    --ring: 182 100% 74%;
+
+    --sidebar-background: 271 72% 6%;
+    --sidebar-foreground: 278 25% 85%;
+    --sidebar-primary: 182 100% 74%;
+    --sidebar-primary-foreground: 271 72% 9%;
+    --sidebar-accent: 271 72% 12%;
+    --sidebar-accent-foreground: 182 100% 85%;
+    --sidebar-border: 285 50% 15%;
+    --sidebar-ring: 182 100% 74%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

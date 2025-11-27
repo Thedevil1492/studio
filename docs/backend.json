@@ -1,0 +1,126 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "type": "object",
+      "description": "Represents a user's profile information.",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile, matching the Firebase Auth UID."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User's display name."
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL of the user's profile picture.",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the profile was created."
+        }
+      },
+      "required": [
+        "uid",
+        "email",
+        "createdAt"
+      ]
+    },
+    "Chat": {
+      "title": "Chat",
+      "type": "object",
+      "description": "A single chat session.",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the chat session, often the first user message."
+        },
+        "createdAt": {
+          "type": "object",
+          "description": "The server timestamp when the chat was created."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who owns this chat."
+        }
+      },
+      "required": [
+        "title",
+        "createdAt",
+        "userId"
+      ]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "type": "object",
+      "description": "A single message within a chat session.",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The content of the chat message."
+        },
+        "sender": {
+          "type": "string",
+          "enum": [
+            "user",
+            "ai"
+          ],
+          "description": "Who sent the message."
+        },
+        "createdAt": {
+          "type": "object",
+          "description": "The server timestamp when the message was created."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who this message belongs to."
+        },
+        "chatId": {
+          "type": "string",
+          "description": "The ID of the chat session this message belongs to."
+        }
+      },
+      "required": [
+        "text",
+        "sender",
+        "createdAt",
+        "userId",
+        "chatId"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password"
+    ]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Stores public information for each user."
+    },
+    "/users/{userId}/chats/{chatId}": {
+      "schema": {
+        "$ref": "#/entities/Chat"
+      },
+      "description": "Stores all chat sessions for a specific user."
+    },
+    "/users/{userId}/messages/{messageId}": {
+      "schema": {
+        "$ref": "#/entities/ChatMessage"
+      },
+      "description": "Stores all chat messages for a specific user, queryable by chatId."
+    }
+  }
+}

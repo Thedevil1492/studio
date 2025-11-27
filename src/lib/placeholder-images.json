@@ -1,0 +1,34 @@
+{
+  "placeholderImages": [
+    {
+      "id": "life-score-card",
+      "description": "A vibrant mandala pattern representing a holistic life score.",
+      "imageUrl": "https://images.unsplash.com/photo-1597765487956-a0de8b29d44b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtYW5kYWxhJTIwcGF0dGVybnxlbnwwfHx8fDE3NjQwNDkzMzd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "mandala pattern"
+    },
+    {
+      "id": "seven-days-card",
+      "description": "A futuristic calendar interface showing the next seven days.",
+      "imageUrl": "https://images.unsplash.com/photo-1676276375742-9e3d10e39d45?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxmdXR1cmUlMjBjYWxlbmRhcnxlbnwwfHx8fDE3NjQxNTU1MzR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "future calendar"
+    },
+    {
+      "id": "advice-card",
+      "description": "An abstract representation of a bright idea or advice.",
+      "imageUrl": "https://images.unsplash.com/photo-1635448635741-bde1658f7c93?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxhYnN0cmFjdCUyMGlkZWF8ZW58MHx8fHwxNzY0MTU1NTM0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract idea"
+    },
+    {
+      "id": "social-growth-card",
+      "description": "A glowing chart showing upward social growth.",
+      "imageUrl": "https://images.unsplash.com/photo-1591696205602-2f950c417cb9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxncm93dGglMjBjaGFydHxlbnwwfHx8fDE3NjQwOTg3Nzd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "growth chart"
+    },
+    {
+      "id": "remedies-card",
+      "description": "A collection of healing crystals and spiritual items.",
+      "imageUrl": "https://images.unsplash.com/photo-1643319123951-674a3befa2c7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxoZWFsaW5nJTIwY3J5c3RhbHN8ZW58MHx8fHwxNzY0MTU1NTM0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "healing crystals"
+    }
+  ]
+}

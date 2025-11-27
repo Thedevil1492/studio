@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if the requesting user is the owner of the document.
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      // Allow users to read and update their own profile.
+      allow read, update: if isOwner(userId);
+      // Allow users to create their own profile document upon signup.
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    }
+
+    match /users/{userId}/chats/{chatId} {
+      // Allow users to read, write, and delete their own chat sessions.
+      allow read, write, delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/messages/{messageId} {
+      // Allow users to read, write, and delete their own messages.
+      // The resource.data.userId must match the user's UID.
+      allow read, write, delete: if isOwner(userId) && request.resource.data.userId == userId;
+    }
+  }
+}
