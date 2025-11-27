@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -18,6 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -154,6 +155,10 @@ const Sidebar = React.forwardRef<
                   }
                   side={side}
                 >
+                  <VisuallyHidden>
+                    <SheetTitle>App Navigation</SheetTitle>
+                    <SheetDescription>Contains main navigation links, chat history, and user settings.</SheetDescription>
+                  </VisuallyHidden>
                   <div className="flex h-full w-full flex-col">{children}</div>
                 </SheetContent>
               </Sheet>
