@@ -11,7 +11,7 @@ import { generateChatResponseAction } from '../actions';
 import { toast } from '@/hooks/use-toast';
 import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { collection, addDoc, serverTimestamp, query, orderBy, doc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, doc, setDoc, getDocs } from 'firebase/firestore';
 import { AppSidebar } from '@/components/app-sidebar';
 import { nanoid } from 'nanoid';
 
@@ -64,53 +64,50 @@ export function ChatInterface() {
     let currentChatId = chatId;
     let isNewChat = false;
 
-    // Create a new chat if one doesn't exist
+    // --- New Chat Creation Logic ---
     if (!currentChatId) {
         isNewChat = true;
         const newChatRef = doc(collection(firestore, 'users', user.uid, 'chats'));
+        currentChatId = newChatRef.id; // Get ID immediately.
+        
+        // Immediately navigate to the new chat URL
+        router.push(`/?id=${currentChatId}`, { scroll: false });
+        
+        // Create the chat document in the background.
         const newChatData = {
-            title: userMessageText.slice(0, 30),
+            title: userMessageText.substring(0, 30),
             createdAt: serverTimestamp(),
             userId: user.uid,
         };
-        // Not awaiting this is okay, we redirect immediately
-        setDoc(newChatRef, newChatData);
-        currentChatId = newChatRef.id;
+        await setDoc(newChatRef, newChatData);
     }
     
     if (!currentChatId) return;
     
     const messagesColRef = collection(firestore, 'users', user.uid, 'chats', currentChatId, 'messages');
+    
+    // Add user message to Firestore.
     const userMessageData = {
+        id: nanoid(), // Add a temporary client-side ID
         text: userMessageText,
-        sender: 'user',
+        sender: 'user' as const,
         createdAt: serverTimestamp(),
     };
-    
-    // Add the user's message
+    // Don't await this, let Firestore handle it. The `useCollection` hook will update the UI.
     const userMessagePromise = addDoc(messagesColRef, userMessageData);
-
-    // If it's a new chat, we need to navigate to the new URL *before* awaiting AI response
-    if (isNewChat) {
-      router.push(`/?id=${currentChatId}`, { scroll: false });
-    }
-
+    
     setIsAiLoading(true);
 
-    // Await the user message to be saved before calling the action
-    await userMessagePromise;
-
-    // We now have to refetch messages from the hook to get the full history
-    const fullHistoryQuery = query(collection(firestore, 'users', user.uid, 'chats', currentChatId, 'messages'), orderBy('createdAt', 'asc'));
-    const { data: fullHistory } = await (async () => {
-        // This is a temporary one-time fetch, not a hook
-        const { getDocs } = await import('firebase/firestore');
-        const snapshot = await getDocs(fullHistoryQuery);
-        return { data: snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Message[] };
-    })();
-
-
-    const response = await generateChatResponseAction(fullHistory || []);
+    // To get the full history for the AI, we need to fetch it once.
+    // This ensures we have the most up-to-date context.
+    const historyQuery = query(messagesColRef, orderBy('createdAt', 'asc'));
+    const historySnapshot = await getDocs(historyQuery);
+    const fullHistory = historySnapshot.docs.map(doc => doc.data() as Message);
+    
+    // Now include the message we just sent.
+    const updatedHistory = [...fullHistory, userMessageData];
+    
+    const response = await generateChatResponseAction(updatedHistory);
     
     setIsAiLoading(false);
 
@@ -126,9 +123,10 @@ export function ChatInterface() {
     if (response.result) {
         const aiMessageData = {
             text: response.result,
-            sender: 'ai',
+            sender: 'ai' as const,
             createdAt: serverTimestamp(),
         };
+        // Add AI response to Firestore. Let `useCollection` handle the UI update.
         addDoc(messagesColRef, aiMessageData);
     }
   };
@@ -195,7 +193,7 @@ export function ChatInterface() {
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="max-w-2xl mx-auto space-y-6">
             <AnimatePresence>
-              {isHistoryLoading && chatId ? (
+              {(isHistoryLoading && chatId) ? (
                   <div className="flex h-full items-center justify-center pt-20">
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
                   </div>
@@ -290,3 +288,5 @@ export function ChatInterface() {
     </div>
   );
 }
+
+    

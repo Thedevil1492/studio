@@ -13,6 +13,7 @@ service cloud.firestore {
     match /users/{userId} {
       // Allow a user to create their own profile document.
       allow create: if request.auth.uid == userId;
+      // Allow a user to read their own profile document.
       allow read: if isOwner(userId);
       
       // This is a recursive wildcard match. It applies to any document
@@ -27,3 +28,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
