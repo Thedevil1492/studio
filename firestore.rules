@@ -19,9 +19,10 @@ service cloud.firestore {
     }
 
     match /users/{userId}/messages/{messageId} {
-      // Allow users to read, write, and delete their own messages.
-      // The resource.data.userId must match the user's UID.
-      allow read, write, delete: if isOwner(userId) && request.resource.data.userId == userId;
+      // Allow users to read their own messages collection.
+      allow list, get: if isOwner(userId);
+      // Allow users to write and delete messages only if they are the owner.
+      allow write, delete: if isOwner(userId) && request.resource.data.userId == userId;
     }
   }
 }
