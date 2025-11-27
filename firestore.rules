@@ -3,26 +3,29 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if the requesting user is the owner of the document.
+    // Helper function to check if the requesting user is the owner.
+    // The user's UID must match the userId in the path.
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    // Matches any document in the 'users' collection.
+    // Rule for the /users collection
     match /users/{userId} {
-      // Allow a user to create their own profile, but not overwrite an existing one.
-      allow create: if request.auth != null && request.auth.uid == userId;
+      // Allow a user to create their own profile document upon signup.
+      // The user must be authenticated, and their UID must match the document ID.
+      allow create: if request.auth.uid == userId;
       
-      // Allow a user to read their own user profile document.
+      // Allow a user to read their own profile document.
       allow read: if isOwner(userId);
     }
     
     // This is a recursive wildcard match. It applies to any document
-    // in any subcollection under a user's document (e.g., chats, messages).
+    // in any subcollection under a specific user's document 
+    // (e.g., /users/{userId}/chats/{chatId} and /users/{userId}/chats/{chatId}/messages/{messageId}).
     match /users/{userId}/{path=**} {
-      // Allow the owner of the parent user document to read and write to any
-      // of their own subcollections. This single rule securely covers all
-      // nested data like chats and messages.
+      // Allow the owner of the user document to read and write to any
+      // of their own nested documents and subcollections. This single rule 
+      // securely covers all user-specific data like chats and messages.
       allow read, write: if isOwner(userId);
     }
   }
