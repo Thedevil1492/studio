@@ -36,10 +36,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
 import {usePathname, useRouter, useSearchParams} from 'next/navigation';
-import { useAuth, useUser, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
+import { useAuth, useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { collection, query, orderBy, doc, deleteDoc } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { SheetTitle, SheetDescription } from './ui/sheet';
 
 
 type Chat = {
@@ -68,13 +70,8 @@ export function AppSidebar({ open, onOpenChange, openMobile, onOpenChangeMobile 
     if (!user || !firestore) return null;
     return query(collection(firestore, 'users', user.uid, 'chats'), orderBy('createdAt', 'desc'));
   }, [user, firestore]);
-  
-  // This is a hack to get around a bug in react-firebase-hooks with turbopack
-  // We use useDoc to check if the query has data, and then we can use the query
-  const { data: hasChats } = useDoc(chatsQuery?.docs[0]);
-  const isHistoryLoading = !hasChats && !chatsQuery?.empty;
-  const chatHistory = chatsQuery?.docs.map(doc => ({ id: doc.id, ...doc.data() } as Chat));
 
+  const { data: chatHistory, isLoading: isHistoryLoading } = useCollection<Chat>(chatsQuery);
 
   const handleNewChat = () => {
     onOpenChange(false);
@@ -113,6 +110,10 @@ export function AppSidebar({ open, onOpenChange, openMobile, onOpenChangeMobile 
 
   return (
     <Sidebar open={open} onOpenChange={onOpenChange} openMobile={openMobile} onOpenChangeMobile={onOpenChangeMobile}>
+      <VisuallyHidden>
+        <SheetTitle>App Navigation</SheetTitle>
+        <SheetDescription>Contains main navigation links, chat history, and user settings.</SheetDescription>
+      </VisuallyHidden>
       <SidebarHeader className="p-4">
           <Button className="w-full justify-start text-base" onClick={handleNewChat}>
             <Plus className="mr-2" />
