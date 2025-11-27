@@ -147,5 +147,3 @@ export function AuthForm() {
     </div>
   );
 }
-
-    
