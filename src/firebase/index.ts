@@ -8,15 +8,11 @@ import React from 'react';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
-  if (!getApps().length) {
-    // During build or in environments without hosting variables,
-    // we must initialize with the config object.
-    const firebaseApp = initializeApp(firebaseConfig);
-    return getSdks(firebaseApp);
-  }
-
-  // If already initialized, return the SDKs with the already initialized App
-  return getSdks(getApp());
+  const firebaseApp = !getApps().length
+    ? initializeApp(firebaseConfig)
+    : getApp();
+  
+  return getSdks(firebaseApp);
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {

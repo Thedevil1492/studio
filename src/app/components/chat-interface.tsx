@@ -11,7 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp, query, orderBy, where, doc, setDoc } from 'firebase/firestore';
-import { SidebarContext } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/app-sidebar';
 
 type Message = {
   text: string;
@@ -24,7 +24,8 @@ export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const sidebarContext = useContext(SidebarContext);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpenMobile, setSidebarOpenMobile] = useState(false);
 
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
@@ -177,14 +178,15 @@ export function ChatInterface() {
 
   return (
     <div className="flex h-screen bg-background text-foreground">
+      <AppSidebar open={sidebarOpen} onOpenChange={setSidebarOpen} openMobile={sidebarOpenMobile} onOpenChangeMobile={setSidebarOpenMobile} />
       <main className="flex flex-1 flex-col transition-all duration-300">
         <header className="flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur-sm px-4 md:px-6">
-           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => sidebarContext?.setOpenMobile(true)}>
+           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSidebarOpenMobile(true)}>
              <Menu className="h-6 w-6" />
              <span className="sr-only">Toggle Sidebar</span>
            </Button>
            <div className="flex items-center gap-2">
-             <Button variant="ghost" size="icon" className="hidden md:flex" onClick={() => sidebarContext?.setOpen(true)}>
+             <Button variant="ghost" size="icon" className="hidden md:flex" onClick={() => setSidebarOpen(true)}>
                <Menu className="h-6 w-6" />
                <span className="sr-only">Toggle Sidebar</span>
              </Button>

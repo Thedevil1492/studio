@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Plus,
   MessageSquare,
@@ -25,6 +25,7 @@ import {
   SidebarFooter,
   SidebarMenuAction,
   SidebarSeparator,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
@@ -40,17 +41,21 @@ import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from '
 import { signOut } from 'firebase/auth';
 import { collection, query, orderBy, doc, deleteDoc } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 type Chat = {
     id: string;
     title: string;
 }
 
-export function AppSidebar() {
-  const [open, setOpen] = useState(false);
-  const [openMobile, setOpenMobile] = useState(false);
-  
+type AppSidebarProps = {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    openMobile: boolean;
+    onOpenChangeMobile: (open: boolean) => void;
+};
+
+
+export function AppSidebar({ open, onOpenChange, openMobile, onOpenChangeMobile }: AppSidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const chatId = searchParams.get('id');
@@ -67,8 +72,8 @@ export function AppSidebar() {
   const { data: chatHistory, isLoading: isHistoryLoading } = useCollection<Chat>(chatsQuery);
 
   const handleNewChat = () => {
-    setOpen(false);
-    setOpenMobile(false);
+    onOpenChange(false);
+    onOpenChangeMobile(false);
     router.push('/');
   };
   
@@ -105,7 +110,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar open={open} onOpenChange={setOpen} openMobile={openMobile} onOpenChangeMobile={setOpenMobile}>
+    <Sidebar open={open} onOpenChange={onOpenChange} openMobile={openMobile} onOpenChangeMobile={onOpenChangeMobile}>
       <SidebarHeader className="p-4">
           <Button className="w-full justify-start text-base" onClick={handleNewChat}>
             <Plus className="mr-2" />
