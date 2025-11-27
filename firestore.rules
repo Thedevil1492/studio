@@ -1,26 +1,25 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check if the requesting user is the owner of the document.
+    // Helper function to check ownership
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    // Users can read and write to their own profile document.
+    // Rule for user profile documents
     match /users/{userId} {
+      // A user can create their own profile document, but cannot overwrite it.
+      allow create: if request.auth != null && request.auth.uid == userId;
+      // An authenticated user can read, update, and delete their own profile.
       allow read, update, delete: if isOwner(userId);
-      // A user can create their own user document upon signup.
-      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
     }
 
-    // Users can read and write to their own chats subcollection.
-    match /users/{userId}/chats/{chatId} {
-        allow read, write: if isOwner(userId);
-    }
-
-    // Users can read and write to their own messages subcollection.
-    match /users/{userId}/messages/{messageId} {
-        allow read, write: if isOwner(userId);
+    // This rule recursively matches all subcollections under a user's document
+    // e.g., /users/{userId}/chats/{chatId} and /users/{userId}/messages/{messageId}
+    match /users/{userId}/{path=**} {
+      // The user must own the parent document to read or write to any subcollection.
+      // This is secure because the {userId} in the path is checked against the user's auth UID.
+      allow read, write: if isOwner(userId);
     }
   }
 }

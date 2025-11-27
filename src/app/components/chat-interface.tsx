@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,11 +55,9 @@ export function ChatInterface() {
     setInput('');
 
     let currentChatId = chatId;
-    let isNewChat = false;
 
     // Create a new chat if one doesn't exist
     if (!currentChatId) {
-        isNewChat = true;
         const newChatRef = doc(collection(firestore, 'users', user.uid, 'chats'));
         const newChat = {
             title: userMessageText.slice(0, 30),
@@ -68,19 +66,14 @@ export function ChatInterface() {
         };
         await setDoc(newChatRef, newChat);
         currentChatId = newChatRef.id;
+        
+        // Redirect to the new chat page. The rest of the logic will be handled
+        // by the hooks listening to the new chat ID.
+        router.push(`/?id=${currentChatId}`, { scroll: false });
+        // The rest of the logic will now run on the new page after redirect
+        return;
     }
-
-    if (isNewChat && currentChatId) {
-      // Redirect to the new chat page. The rest of the logic will be handled
-      // by the hooks listening to the new chat ID.
-      router.push(`/?id=${currentChatId}`, { scroll: false });
-    }
-
-    if (!currentChatId) {
-      toast({ title: 'Error', description: 'Could not create or find chat.', variant: 'destructive' });
-      return;
-    }
-
+    
     // Save user message to Firestore
     const userMessage: Omit<Message, 'id'> = { text: userMessageText, sender: 'user' };
     const messagesColRef = collection(firestore, 'users', user.uid, 'messages');
