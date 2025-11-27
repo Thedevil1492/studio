@@ -9,7 +9,7 @@ import { Paperclip, Send, Bot, User, Sun, Menu, Loader2, LogOut } from 'lucide-r
 import { AnimatePresence, motion } from 'framer-motion';
 import { generateChatResponseAction } from '../actions';
 import { toast } from '@/hooks/use-toast';
-import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useAuth, useFirestore, useCollection, useMemoFirebase, FirestorePermissionError, errorEmitter } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp, query, orderBy, doc, setDoc } from 'firebase/firestore';
 import { AppSidebar } from '@/components/app-sidebar';
@@ -28,14 +28,12 @@ export function ChatInterface() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarOpenMobile, setSidebarOpenMobile] = useState(false);
   
-  // This state ensures we don't try to use Firebase hooks until the client has mounted.
   const [isClient, setIsClient] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
   const chatId = searchParams.get('id');
 
-  // Defer Firebase hooks until we are on the client
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -44,7 +42,6 @@ export function ChatInterface() {
     setIsClient(true);
   }, []);
 
-  // Memoize the query to prevent re-renders
   const messagesQuery = useMemoFirebase(() => {
     if (!isClient || !user || !firestore || !chatId) return null;
     return query(collection(firestore, 'users', user.uid, 'chats', chatId, 'messages'), orderBy('createdAt', 'asc'));
@@ -69,36 +66,46 @@ export function ChatInterface() {
     // Create a new chat if one doesn't exist
     if (!currentChatId) {
         const newChatRef = doc(collection(firestore, 'users', user.uid, 'chats'));
-        const newChat = {
+        const newChatData = {
             title: userMessageText.slice(0, 30),
             createdAt: serverTimestamp(),
             userId: user.uid,
         };
-        await setDoc(newChatRef, newChat);
+        
+        setDoc(newChatRef, newChatData).catch(error => {
+            errorEmitter.emit(
+              'permission-error',
+              new FirestorePermissionError({
+                path: newChatRef.path,
+                operation: 'create',
+                requestResourceData: newChatData,
+              })
+            );
+        });
+
         currentChatId = newChatRef.id;
         router.push(`/?id=${currentChatId}`, { scroll: false });
-        // Don't return here. Continue to add the first message.
     }
     
     const userMessage: Omit<Message, 'id'> = { text: userMessageText, sender: 'user' };
-    if (!currentChatId) return; // Should not happen, but as a safeguard.
+    if (!currentChatId) return;
     
     const messagesColRef = collection(firestore, 'users', user.uid, 'chats', currentChatId, 'messages');
+    const userMessageData = {
+        ...userMessage,
+        createdAt: serverTimestamp(),
+    };
     
-    try {
-        await addDoc(messagesColRef, {
-            ...userMessage,
-            createdAt: serverTimestamp(),
-        });
-    } catch (error) {
-        console.error("Error saving user message:", error);
-        toast({
-            title: 'Error',
-            description: 'Could not save your message. Please try again.',
-            variant: 'destructive',
-        });
-        return;
-    }
+    addDoc(messagesColRef, userMessageData).catch(error => {
+        errorEmitter.emit(
+          'permission-error',
+          new FirestorePermissionError({
+            path: messagesColRef.path,
+            operation: 'create',
+            requestResourceData: userMessageData,
+          })
+        );
+    });
 
     setIsAiLoading(true);
 
@@ -118,14 +125,20 @@ export function ChatInterface() {
 
     if (response.result) {
         const aiResponse: Omit<Message, 'id'> = { text: response.result, sender: 'ai' };
-        try {
-            await addDoc(messagesColRef, {
-                ...aiResponse,
-                createdAt: serverTimestamp(),
-            });
-        } catch(error) {
-             console.error("Error saving AI message:", error);
-        }
+        const aiMessageData = {
+            ...aiResponse,
+            createdAt: serverTimestamp(),
+        };
+        addDoc(messagesColRef, aiMessageData).catch(error => {
+             errorEmitter.emit(
+              'permission-error',
+              new FirestorePermissionError({
+                path: messagesColRef.path,
+                operation: 'create',
+                requestResourceData: aiMessageData,
+              })
+            );
+        });
     }
   };
 
@@ -148,7 +161,6 @@ export function ChatInterface() {
     }
   };
 
-  // Show a loading state until the client has mounted and we know the user's auth status.
   if (!isClient || isUserLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -287,3 +299,5 @@ export function ChatInterface() {
     </div>
   );
 }
+
+    
