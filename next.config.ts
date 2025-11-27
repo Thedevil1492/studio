@@ -3,6 +3,10 @@ import type {NextConfig} from 'next';
 const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
+    // This allows requests from the development environment domain.
+    allowedDevOrigins: [
+        '9000-firebase-cosmicmind-ai-v20-1764214799973.cluster-fkltigo73ncaixtmokrzxhwsfc.cloudworkstations.dev',
+    ],
   },
   typescript: {
     ignoreBuildErrors: true,
