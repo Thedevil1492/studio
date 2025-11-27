@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,27 +27,36 @@ export function ChatInterface() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarOpenMobile, setSidebarOpenMobile] = useState(false);
+  
+  // This state ensures we don't try to use Firebase hooks until the client has mounted.
+  const [isClient, setIsClient] = useState(false);
 
-  const { user, isUserLoading } = useUser();
-  const auth = useAuth();
-  const firestore = useFirestore();
   const router = useRouter();
   const searchParams = useSearchParams();
   const chatId = searchParams.get('id');
 
+  // Defer Firebase hooks until we are on the client
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const firestore = useFirestore();
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // Memoize the query to prevent re-renders
   const messagesQuery = useMemoFirebase(() => {
-    if (!user || !firestore || !chatId) return null;
+    if (!isClient || !user || !firestore || !chatId) return null;
     return query(collection(firestore, 'users', user.uid, 'messages'), where('chatId', '==', chatId), orderBy('createdAt', 'asc'));
-  }, [user, firestore, chatId]);
+  }, [isClient, user, firestore, chatId]);
 
   const { data: messages, isLoading: isHistoryLoading } = useCollection<Message>(messagesQuery);
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    if (isClient && !isUserLoading && !user) {
       router.push('/login');
     }
-  }, [user, isUserLoading, router]);
+  }, [isClient, user, isUserLoading, router]);
 
   const handleSend = async () => {
     if (input.trim() === '' || isAiLoading || !user || !firestore) return;
@@ -66,15 +76,10 @@ export function ChatInterface() {
         };
         await setDoc(newChatRef, newChat);
         currentChatId = newChatRef.id;
-        
-        // Redirect to the new chat page. The rest of the logic will be handled
-        // by the hooks listening to the new chat ID.
         router.push(`/?id=${currentChatId}`, { scroll: false });
-        // The rest of the logic will now run on the new page after redirect
         return;
     }
     
-    // Save user message to Firestore
     const userMessage: Omit<Message, 'id'> = { text: userMessageText, sender: 'user' };
     const messagesColRef = collection(firestore, 'users', user.uid, 'messages');
     
@@ -113,7 +118,6 @@ export function ChatInterface() {
 
     if (response.result) {
         const aiResponse: Omit<Message, 'id'> = { text: response.result, sender: 'ai' };
-        // Save AI message to Firestore
         try {
             await addDoc(messagesColRef, {
                 ...aiResponse,
@@ -123,7 +127,6 @@ export function ChatInterface() {
             });
         } catch(error) {
              console.error("Error saving AI message:", error);
-             // Don't revert UI, just log the error
         }
     }
   };
@@ -135,7 +138,6 @@ export function ChatInterface() {
   };
 
   const handleThemeCycle = () => {
-    // A bit of a hack to call the function defined in the layout
     if (typeof (window as any).cycleTheme === 'function') {
       (window as any).cycleTheme();
     }
@@ -148,9 +150,8 @@ export function ChatInterface() {
     }
   };
 
-  const isLoading = isUserLoading;
-
-  if (isLoading || !user) {
+  // Show a loading state until the client has mounted and we know the user's auth status.
+  if (!isClient || isUserLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -170,7 +171,7 @@ export function ChatInterface() {
              <span className="sr-only">Toggle Sidebar</span>
            </Button>
            <div className="flex items-center gap-2">
-             <Button variant="ghost" size="icon" className="hidden md:flex" onClick={() => setSidebarOpen(true)}>
+             <Button variant="ghost" size="icon" className="hidden md:flex" onClick={() => setSidebarOpen(!sidebarOpen)}>
                <Menu className="h-6 w-6" />
                <span className="sr-only">Toggle Sidebar</span>
              </Button>
@@ -268,7 +269,7 @@ export function ChatInterface() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              disabled={isAiLoading}
+              disabled={isAiLoading || !firestore}
             />
             <div className="absolute left-4 top-1/2 -translate-y-1/2">
               <Button variant="ghost" size="icon" className="rounded-full">
@@ -277,7 +278,7 @@ export function ChatInterface() {
               </Button>
             </div>
             <div className="absolute right-2 top-1/2 -translate-y-1/2">
-              <Button size="icon" className="rounded-full w-9 h-9" onClick={handleSend} disabled={!input.trim() || isAiLoading}>
+              <Button size="icon" className="rounded-full w-9 h-9" onClick={handleSend} disabled={!input.trim() || isAiLoading || !firestore}>
                 <Send className="w-5 h-5" />
                 <span className="sr-only">Send Message</span>
               </Button>
@@ -288,3 +289,5 @@ export function ChatInterface() {
     </div>
   );
 }
+
+    

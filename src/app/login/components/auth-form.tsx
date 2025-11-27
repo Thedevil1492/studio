@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -20,6 +21,7 @@ export function AuthForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   const auth = useAuth();
   const firestore = useFirestore();
@@ -27,10 +29,14 @@ export function AuthForm() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isUserLoading && user) {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (isClient && !isUserLoading && user) {
       router.push('/');
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, router, isClient]);
 
   const createUserProfile = async (user: User) => {
     if (!firestore) return;
@@ -42,16 +48,18 @@ export function AuthForm() {
       photoURL: user.photoURL,
       createdAt: serverTimestamp(),
     };
+    // This MUST be awaited to ensure the document exists before redirecting.
     await setDoc(userRef, userProfile);
   };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) return;
+    if (!auth || !firestore) return;
     setIsLoading(true);
     try {
       if (mode === 'signup') {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        // This is the critical fix: wait for the profile to be created.
         await createUserProfile(userCredential.user);
       } else {
         await signInWithEmailAndPassword(auth, email, password);
@@ -68,7 +76,7 @@ export function AuthForm() {
     }
   };
 
-  if (isUserLoading || user) {
+  if (!isClient || isUserLoading || user) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -139,3 +147,5 @@ export function AuthForm() {
     </div>
   );
 }
+
+    
