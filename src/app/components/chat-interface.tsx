@@ -112,7 +112,10 @@ export function ChatInterface() {
 
     setIsAiLoading(true);
 
-    const historyForAI = [...messages, userMessage];
+    const historyForAI = [...messages, userMessage].map(msg => ({
+      text: msg.text,
+      sender: msg.sender,
+    }));
 
     const response = await generateChatResponseAction(historyForAI);
     setIsAiLoading(false);
@@ -296,4 +299,5 @@ export function ChatInterface() {
       </main>
     </div>
   );
-}
+
+    
