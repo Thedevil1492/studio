@@ -25,7 +25,6 @@ import {
   SidebarFooter,
   SidebarMenuAction,
   SidebarSeparator,
-  useSidebar,
 } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
@@ -42,6 +41,8 @@ import { signOut } from 'firebase/auth';
 import { collection, query, orderBy, doc, deleteDoc } from 'firebase/firestore';
 import { toast } from '@/hooks/use-toast';
 import { useCollection } from 'react-firebase-hooks/firestore';
+import { SheetDescription, SheetTitle } from './ui/sheet';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 
 type Chat = {
@@ -112,6 +113,10 @@ export function AppSidebar({ open, onOpenChange, openMobile, onOpenChangeMobile 
 
   return (
     <Sidebar open={open} onOpenChange={onOpenChange} openMobile={openMobile} onOpenChangeMobile={onOpenChangeMobile}>
+      <VisuallyHidden>
+        <SheetTitle>App Navigation</SheetTitle>
+        <SheetDescription>Contains main navigation links, chat history, and user settings.</SheetDescription>
+      </VisuallyHidden>
       <SidebarHeader className="p-4">
           <Button className="w-full justify-start text-base" onClick={handleNewChat}>
             <Plus className="mr-2" />
