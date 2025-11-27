@@ -2,10 +2,6 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  // This is to allow cross-origin requests in the development environment.
-  allowedDevOrigins: [
-    'https://*.cloudworkstations.dev',
-  ],
   experimental: {
   },
   typescript: {
