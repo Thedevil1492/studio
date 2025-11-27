@@ -11,7 +11,7 @@ service cloud.firestore {
 
     // Rules for the /users collection and its subcollections
     match /users/{userId} {
-      // Allow a user to create and read their own profile document.
+      // Allow a user to create their own profile document.
       allow create: if request.auth.uid == userId;
       allow read: if isOwner(userId);
       
